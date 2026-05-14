@@ -1,0 +1,71 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 /home/jimccann/cwizlight/claude_status_light.py input",
+            "statusMessage": "Setting light to ready (green)"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 /home/jimccann/cwizlight/claude_status_light.py idle",
+            "statusMessage": "Setting light to processing (yellow)"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 /home/jimccann/cwizlight/claude_status_light.py input",
+            "statusMessage": "Setting light to ready (green)"
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 /home/jimccann/cwizlight/claude_status_light.py working",
+            "statusMessage": "Setting light to input needed (red)"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 /home/jimccann/cwizlight/claude_status_light.py flash",
+            "statusMessage": "Flashing light (white) - file written/edited"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 /home/jimccann/cwizlight/claude_status_light.py warm && python3 /home/jimccann/cwizlight/claude_status_light.py off",
+            "statusMessage": "Setting warm goodbye light, then turning off"
+          }
+        ]
+      }
+    ]
+  }
+}
