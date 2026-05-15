@@ -156,19 +156,6 @@ await light.turn_on(PilotBuilder(rgb=(255, 0, 0), brightness=128))
 ### Use Multiple Bulbs
 Create separate scripts for each bulb with different IP addresses, or modify the script to accept an IP as a command-line argument.
 
-## Backup and Restore
-
-A backup of your original Claude Code settings was created at:
-```
-~/.claude/settings.json.backup-20260512-170654
-```
-
-To restore original settings:
-```bash
-cp ~/.claude/settings.json.backup-20260512-170654 ~/.claude/settings.json
-rm .claude/settings.json  # Remove project-specific hooks
-```
-
 ## Managing Hooks
 
 ### View Active Hooks
