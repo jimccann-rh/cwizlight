@@ -12,7 +12,7 @@ async def discover_and_save_bulb():
     bulbs = await discovery.discover_lights(broadcast_space="192.168.0.255")
     if not bulbs:
         print("No WizLight bulbs found on the network", file=sys.stderr)
-        sys.exit(1)
+        return None
     bulb_ip = bulbs[0].ip
     # Save to file for future use
     BULB_IP_FILE.write_text(bulb_ip)
@@ -23,7 +23,10 @@ async def get_bulb_ip():
     if BULB_IP_FILE.exists():
         return BULB_IP_FILE.read_text().strip()
     # No cached IP, run discovery
-    return await discover_and_save_bulb()
+    bulb_ip = await discover_and_save_bulb()
+    if bulb_ip is None:
+        sys.exit(1)
+    return bulb_ip
 
 async def set_status(status: str):
     """Set the bulb color based on Claude's status.
@@ -63,6 +66,8 @@ async def set_status(status: str):
 
         # Rediscover and retry
         bulb_ip = await discover_and_save_bulb()
+        if bulb_ip is None:
+            sys.exit(1)
         light = wizlight(bulb_ip)
 
         try:
