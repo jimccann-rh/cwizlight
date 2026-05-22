@@ -2,9 +2,28 @@
 """Control WizLight bulb to show Claude Code status."""
 import asyncio
 import sys
-from pywizlight import wizlight, PilotBuilder
+from pathlib import Path
+from pywizlight import wizlight, PilotBuilder, discovery
 
-BULB_IP = "192.168.0.220"
+BULB_IP_FILE = Path(__file__).parent / "blubip.txt"
+
+async def discover_and_save_bulb():
+    """Discover WizLight bulb on the network and save its IP."""
+    bulbs = await discovery.discover_lights(broadcast_space="192.168.0.255")
+    if not bulbs:
+        print("No WizLight bulbs found on the network", file=sys.stderr)
+        sys.exit(1)
+    bulb_ip = bulbs[0].ip
+    # Save to file for future use
+    BULB_IP_FILE.write_text(bulb_ip)
+    return bulb_ip
+
+async def get_bulb_ip():
+    """Get bulb IP from cache file or discover if not available."""
+    if BULB_IP_FILE.exists():
+        return BULB_IP_FILE.read_text().strip()
+    # No cached IP, run discovery
+    return await discover_and_save_bulb()
 
 async def set_status(status: str):
     """Set the bulb color based on Claude's status.
@@ -12,7 +31,8 @@ async def set_status(status: str):
     Args:
         status: One of 'working', 'idle', 'input', 'warm', 'flash', 'off'
     """
-    light = wizlight(BULB_IP)
+    bulb_ip = await get_bulb_ip()
+    light = wizlight(bulb_ip)
 
     try:
         if status == "working":
@@ -37,9 +57,33 @@ async def set_status(status: str):
             print(f"Unknown status: {status}", file=sys.stderr)
             sys.exit(1)
     except Exception as e:
-        print(f"Error controlling light: {e}", file=sys.stderr)
-        sys.exit(1)
-    finally:
+        # If connection failed, try rediscovering the bulb
+        print(f"Connection error with cached IP {bulb_ip}, rediscovering bulb...", file=sys.stderr)
+        await light.async_close()
+
+        # Rediscover and retry
+        bulb_ip = await discover_and_save_bulb()
+        light = wizlight(bulb_ip)
+
+        try:
+            if status == "working":
+                await light.turn_on(PilotBuilder(rgb=(255, 0, 0), brightness=255))
+            elif status == "idle":
+                await light.turn_on(PilotBuilder(rgb=(255, 255, 0), brightness=255))
+            elif status == "input":
+                await light.turn_on(PilotBuilder(rgb=(0, 255, 0), brightness=255))
+            elif status == "warm":
+                await light.turn_on(PilotBuilder(warm_white=255, brightness=51))
+            elif status == "flash":
+                await light.turn_on(PilotBuilder(rgb=(255, 255, 255), brightness=255))
+            elif status == "off":
+                await light.turn_off()
+        except Exception as retry_error:
+            print(f"Error controlling light after rediscovery: {retry_error}", file=sys.stderr)
+            sys.exit(1)
+        finally:
+            await light.async_close()
+    else:
         # Properly close the connection to avoid cleanup warnings
         await light.async_close()
 
